@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
-import { sign } from 'hono/jwt';
+import { sign, verify } from 'hono/jwt';
 import { signinInput } from "@ankitpandit/medium-common";
 import { z } from "zod";
 
@@ -145,3 +145,103 @@ userRouter.post('/signin', async(c) => {
         return c.json({ message: "Internal server error during signin", error: String(e) });
     }
 })
+
+userRouter.get('/:id', async (c) => {
+    const id = Number(c.req.param("id"));
+    if (isNaN(id)) {
+        c.status(400);
+        return c.json({ message: "Invalid user ID" });
+    }
+
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                bio: true,
+                avatar: true,
+                _count: {
+                    select: { posts: true }
+                },
+                posts: {
+                    select: {
+                        id: true,
+                        title: true,
+                        content: true,
+                        createdAt: true,
+                        _count: {
+                            select: { likes: true, comments: true }
+                        }
+                    },
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
+        });
+
+        if (!user) {
+            c.status(404);
+            return c.json({ message: "User not found" });
+        }
+
+        // Calculate total likes received from all posts authored by this user
+        const totalLikesReceived = await prisma.like.count({
+            where: {
+                post: {
+                    authorId: id
+                }
+            }
+        });
+
+        return c.json({ user: { ...user, totalLikesReceived } });
+    } catch (e: any) {
+        c.status(500);
+        return c.json({ message: "Failed to fetch user", error: String(e) });
+    }
+});
+
+userRouter.put('/profile', async (c) => {
+    const authHeader = c.req.header("Authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+    
+    let userId;
+    try {
+        const user = await verify(token, c.env.JWT_SECRET);
+        userId = user.id;
+    } catch (e) {
+        c.status(403);
+        return c.json({ message: "Unauthorized" });
+    }
+
+    const body = await c.req.json();
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const updatedUser = await prisma.user.update({
+            where: { id: Number(userId) },
+            data: {
+                name: body.name,
+                bio: body.bio,
+                avatar: body.avatar
+            },
+            select: {
+                id: true,
+                name: true,
+                bio: true,
+                avatar: true
+            }
+        });
+
+        return c.json({ message: "Profile updated", user: updatedUser });
+    } catch (e: any) {
+        c.status(500);
+        return c.json({ message: "Failed to update profile", error: String(e) });
+    }
+});

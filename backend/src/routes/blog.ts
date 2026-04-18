@@ -179,6 +179,41 @@ blogRouter.use('/*',async(c,next)=>{
         }
     });
 
+    blogRouter.delete('/:id/comment/:commentId', async (c) => {
+        const postId = Number(c.req.param("id"));
+        const commentId = Number(c.req.param("commentId"));
+        const userId = Number(c.get("userId"));
+        const prisma = c.get("prisma");
+
+        try {
+            const comment = await prisma.comment.findUnique({
+                where: { id: commentId },
+                include: { post: { select: { authorId: true } } }
+            });
+
+            if (!comment) {
+                c.status(404);
+                return c.json({ message: "Comment not found" });
+            }
+
+            // Only comment author or post author can delete
+            if (comment.userId !== userId && comment.post.authorId !== userId) {
+                c.status(403);
+                return c.json({ message: "Not authorized to delete this comment" });
+            }
+
+            await prisma.comment.delete({
+                where: { id: commentId }
+            });
+
+            return c.json({ message: "Comment deleted successfully" });
+        } catch (e: any) {
+            console.error("Delete Comment Error:", e);
+            c.status(500);
+            return c.json({ message: "Failed to delete comment", error: String(e) });
+        }
+    });
+
     // --- END OF NEW ROUTES ---
 
       //Todo: pagination
@@ -249,6 +284,7 @@ blogRouter.use('/*',async(c,next)=>{
                         id: true,
                         content: true,
                         createdAt: true,
+                        userId: true,
                         user: { select: { name: true } }
                     },
                     orderBy: { createdAt: 'desc' }

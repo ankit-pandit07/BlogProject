@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "../config";
+import { Toast } from "./Toast";
 import { ImagePlus, Loader2 } from "lucide-react";
 
 export const PostComposer = ({ onPostCreated }: { onPostCreated: () => void }) => {
@@ -8,6 +9,8 @@ export const PostComposer = ({ onPostCreated }: { onPostCreated: () => void }) =
     const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<"success" | "error">("error");
 
     const handlePost = async () => {
         if (!content.trim()) return;
@@ -23,7 +26,8 @@ export const PostComposer = ({ onPostCreated }: { onPostCreated: () => void }) =
             onPostCreated();
         } catch (e) {
             console.error("Failed to post", e);
-            alert("Failed to create post");
+            setToastMessage("Failed to create post");
+            setToastType("error");
         } finally {
             setIsSubmitting(false);
         }
@@ -40,7 +44,8 @@ export const PostComposer = ({ onPostCreated }: { onPostCreated: () => void }) =
 
         const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || prompt("Please enter your Cloudinary Cloud Name:");
         if (!cloudName) {
-            alert("Cloudinary cloud name required");
+            setToastMessage("Cloudinary cloud name required");
+            setToastType("error");
             setIsUploading(false);
             return;
         }
@@ -52,7 +57,8 @@ export const PostComposer = ({ onPostCreated }: { onPostCreated: () => void }) =
             setContent(prev => prev + `\n<img src="${imageUrl}" alt="Uploaded Image" class="rounded-2xl mt-4 w-full max-h-96 object-cover" />`);
         } catch (err) {
             console.error("Image upload failed", err);
-            alert("Failed to upload image");
+            setToastMessage("Failed to upload image");
+            setToastType("error");
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -99,6 +105,7 @@ export const PostComposer = ({ onPostCreated }: { onPostCreated: () => void }) =
                     </button>
                 </div>
             </div>
+            <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
         </div>
     );
 };

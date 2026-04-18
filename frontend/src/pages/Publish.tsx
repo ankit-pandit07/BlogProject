@@ -4,11 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { ChangeEvent, useState, useEffect } from "react";
 import { Appbar } from "../components/Appbar";
 import { RichTextEditor } from "../components/RichTextEditor";
+import { Toast } from "../components/Toast";
 
 export const Publish = () => {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const navigate = useNavigate();
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<"success" | "error">("error");
 
     useEffect(() => {
         if (!localStorage.getItem("token")) {
@@ -43,7 +46,8 @@ export const Publish = () => {
                             if (e.response?.status === 403) {
                                 navigate("/signin");
                             } else {
-                                alert("Failed to publish post.");
+                                setToastMessage("Failed to publish post.");
+                                setToastType("error");
                             }
                         }
                     }} 
@@ -54,6 +58,7 @@ export const Publish = () => {
                 </button>
             </div>
         </div>
+        <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
     </div>
 }
 

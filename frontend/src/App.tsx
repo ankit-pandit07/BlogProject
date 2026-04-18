@@ -5,6 +5,7 @@ import { Blog } from './pages/Blog'
 import { Blogs } from './pages/Blogs'
 import { Publish } from './pages/Publish'
 import { EditBlog } from './pages/EditBlog'
+import { Profile } from './pages/Profile'
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
           <Route path="/blogs" element={<Blogs/>} />
           <Route path="/publish" element={<Publish />} />
           <Route path="/edit/:id" element={<EditBlog />} />
+          <Route path="/profile/:id" element={<Profile />} />
         </Routes>
       </BrowserRouter>
     </>

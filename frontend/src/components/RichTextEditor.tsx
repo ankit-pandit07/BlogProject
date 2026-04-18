@@ -1,10 +1,13 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import axios from "axios";
+import { Toast } from "./Toast";
 
-export const RichTextEditor = ({ content, setContent }: { content: string, setContent: (val: string) => void }) => {
+export const RichTextEditor = ({ content, setContent }: { content: string, setContent: (value: string) => void }) => {
     const quillRef = useRef<ReactQuill>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<"success" | "error">("error");
 
     // Custom Image Handler for Cloudinary
     const imageHandler = () => {
@@ -24,7 +27,9 @@ export const RichTextEditor = ({ content, setContent }: { content: string, setCo
             // IMPORTANT: If cloud name is missing, use a fallback prompt
             const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || prompt("Please enter your Cloudinary Cloud Name:");
             if (!cloudName) {
-                alert("Cloudinary cloud name is required for image upload.");
+                console.error("Cloudinary cloud name missing in env");
+                setToastMessage("Cloudinary cloud name is required for image upload.");
+                setToastType("error");
                 return;
             }
 
@@ -40,9 +45,10 @@ export const RichTextEditor = ({ content, setContent }: { content: string, setCo
                     quill.insertEmbed(range.index, "image", imageUrl);
                     quill.setSelection({ index: range.index + 1, length: 0 });
                 }
-            } catch (err) {
-                console.error("Image upload failed", err);
-                alert("Failed to upload image. Please check your Cloudinary configuration.");
+            } catch (error) {
+                console.error("Error uploading image to Cloudinary", error);
+                setToastMessage("Failed to upload image. Please check your Cloudinary configuration.");
+                setToastType("error");
             }
         };
     };
@@ -73,6 +79,7 @@ export const RichTextEditor = ({ content, setContent }: { content: string, setCo
                 placeholder="Tell your story..."
                 className="h-96 pb-12 text-lg"
             />
+            <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
         </div>
     );
 };

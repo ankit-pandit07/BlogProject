@@ -1,9 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Avatar } from "./BlogCard";
 import { SearchBar } from "./SearchBar";
+import { useState, useEffect } from "react";
 
 export const Appbar=()=>{
     const navigate = useNavigate();
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                setCurrentUserId(payload.id);
+            } catch(e) {}
+        }
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -29,7 +41,13 @@ export const Appbar=()=>{
             <button onClick={handleLogout} type="button" className="text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-sm px-4 py-2 transition-colors">
                 Logout
             </button>
-            <Avatar size={"big"} name="Ankit" />
+            {currentUserId ? (
+                <Link to={`/profile/${currentUserId}`} className="cursor-pointer hover:opacity-80 transition-opacity">
+                    <Avatar size={"big"} name="User" />
+                </Link>
+            ) : (
+                <Avatar size={"big"} name="User" />
+            )}
         </div>
     </div>
 }

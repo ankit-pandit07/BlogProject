@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Bookmark } from "lucide-react";
 import { useLike } from "../hooks";
-import { CommentSection } from "./CommentSection";
 
 interface BlogCardProps {
   authorName: string;
+  title: string;
   content: string;
   publishedDate: string;
   id: number;
@@ -15,6 +15,7 @@ interface BlogCardProps {
 
 export const BlogCard = ({
   authorName,
+  title,
   content,
   publishedDate,
   id,
@@ -22,7 +23,6 @@ export const BlogCard = ({
   commentsCount,
   initialLiked
 }: BlogCardProps) => {
-  const [showComments, setShowComments] = useState(false);
   const [liked, setLiked] = useState(initialLiked);
   const [likeCount, setLikeCount] = useState(likesCount);
   const [isLiking, setIsLiking] = useState(false);
@@ -46,62 +46,48 @@ export const BlogCard = ({
     }
   };
 
+  // Strip HTML tags for the preview content
+  const plainTextContent = content.replace(/<[^>]+>/g, '');
+
   return (
-    <div className="border-b border-gray-100 p-4 hover:bg-gray-50 transition-colors bg-white">
-      <div className="flex gap-3">
-        <div className="flex-shrink-0">
-          <Avatar name={authorName} />
+    <div className="p-6 bg-white transition-colors cursor-pointer w-full">
+      <div className="flex items-center gap-3 mb-4">
+        <Avatar name={authorName} />
+        <div className="flex items-center text-sm">
+            <span className="font-semibold text-gray-900">{authorName}</span>
+            <span className="mx-2 text-gray-400">·</span>
+            <span className="text-gray-500 font-medium">{publishedDate}</span>
+        </div>
+      </div>
+      
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2 leading-tight tracking-tight line-clamp-2">
+            {title}
+        </h2>
+        <p className="text-gray-600 text-[15px] leading-relaxed line-clamp-3 font-serif">
+            {plainTextContent}
+        </p>
+      </div>
+
+      <div className="flex justify-between items-center mt-6">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={handleLike} 
+            className="flex items-center gap-2 group transition-colors"
+            disabled={isLiking}
+          >
+            <Heart className={`w-5 h-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-gray-400 group-hover:text-red-500"}`} />
+            <span className={`text-sm font-medium ${liked ? "text-red-500" : "text-gray-500 group-hover:text-red-500"}`}>{likeCount}</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-gray-400 group hover:text-blue-500 transition-colors">
+            <MessageCircle className="w-5 h-5 group-hover:text-blue-500 transition-colors" />
+            <span className="text-sm font-medium group-hover:text-blue-500">{commentsCount}</span>
+          </div>
         </div>
         
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-1 text-sm mb-1">
-            <span className="font-bold text-gray-900 truncate">{authorName}</span>
-            <span className="text-gray-500">@{authorName.replace(/\s+/g, '').toLowerCase()}</span>
-            <span className="text-gray-500 px-1">·</span>
-            <span className="text-gray-500">{publishedDate}</span>
-          </div>
-
-          {/* Content */}
-          <div 
-            className="text-gray-900 text-[15px] leading-snug mb-3 line-clamp-5 overflow-hidden" 
-            dangerouslySetInnerHTML={{ __html: content }} 
-          />
-
-          {/* Action Bar */}
-          <div className="flex justify-between text-gray-500 max-w-md mt-3">
-            <button 
-              onClick={(e) => { e.preventDefault(); setShowComments(!showComments); }} 
-              className="flex items-center gap-2 group transition-colors"
-            >
-              <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                <MessageCircle className="w-4 h-4" />
-              </div>
-              <span className="text-sm group-hover:text-blue-500">{commentsCount}</span>
-            </button>
-            
-            <button 
-              onClick={handleLike} 
-              className="flex items-center gap-2 group transition-colors"
-              disabled={isLiking}
-            >
-              <div className={`p-2 rounded-full group-hover:bg-pink-50 transition-colors ${liked ? "text-pink-600" : "group-hover:text-pink-600"}`}>
-                <Heart className={`w-4 h-4 ${liked ? "fill-pink-600" : ""}`} />
-              </div>
-              <span className={`text-sm ${liked ? "text-pink-600" : "group-hover:text-pink-600"}`}>{likeCount}</span>
-            </button>
-            
-            {/* Placeholder for Share/Retweet styling */}
-            <div className="p-2"></div>
-            <div className="p-2"></div>
-          </div>
-
-          {/* Inline Comments */}
-          {showComments && (
-            <div className="mt-4 border-t border-gray-100 pt-4" onClick={(e) => e.preventDefault()}>
-              <CommentSection postId={id} initialComments={[]} />
-            </div>
-          )}
+        <div className="text-gray-400 hover:text-gray-900 transition-colors">
+            <Bookmark className="w-5 h-5" />
         </div>
       </div>
     </div>

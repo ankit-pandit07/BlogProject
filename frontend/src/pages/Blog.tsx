@@ -7,6 +7,8 @@ import { Avatar } from "../components/BlogCard";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "../config";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { Toast } from "../components/Toast";
 
 export const Blog = () => {
     const { id } = useParams();
@@ -16,6 +18,9 @@ export const Blog = () => {
     });
 
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<"success" | "error">("error");
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -27,15 +32,15 @@ export const Blog = () => {
         }
     }, []);
 
-    const handleDelete = async () => {
-        if (!window.confirm("Are you sure you want to delete this blog?")) return;
+    const confirmDelete = async () => {
         try {
             await axios.delete(`${BACKEND_URL}/api/v1/blog/${id}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
             navigate("/blogs");
         } catch(e) {
-            alert("Failed to delete blog");
+            setToastMessage("Failed to delete blog");
+            setToastType("error");
         }
     }
 
@@ -84,7 +89,7 @@ export const Blog = () => {
                             <Link to={`/edit/${blog.id}`}>
                                 <button className="text-gray-600 bg-gray-100 hover:bg-gray-200 font-semibold rounded-full text-sm px-5 py-2 transition-colors">Edit</button>
                             </Link>
-                            <button onClick={handleDelete} className="text-red-600 bg-red-50 hover:bg-red-100 font-semibold rounded-full text-sm px-5 py-2 transition-colors">Delete</button>
+                            <button onClick={() => setIsDeleteModalOpen(true)} className="text-red-600 bg-red-50 hover:bg-red-100 font-semibold rounded-full text-sm px-5 py-2 transition-colors">Delete</button>
                         </div>
                     )}
                 </div>
@@ -114,10 +119,29 @@ export const Blog = () => {
 
                 {/* Comments Section */}
                 <div className="mt-10">
-                    <CommentSection postId={blog.id} initialComments={blog.comments || []} />
+                    <CommentSection 
+                        postId={blog.id} 
+                        initialComments={blog.comments || []} 
+                        currentUserId={currentUserId}
+                        blogAuthorId={blog.authorId}
+                    />
                 </div>
 
             </div>
         </div>
+
+        <ConfirmModal 
+            isOpen={isDeleteModalOpen} 
+            onClose={() => setIsDeleteModalOpen(false)} 
+            onConfirm={confirmDelete}
+            title="Delete Blog"
+            message="Are you sure you want to delete this blog? This action cannot be undone."
+        />
+        
+        <Toast 
+            message={toastMessage} 
+            type={toastType} 
+            onClose={() => setToastMessage(null)} 
+        />
     </div>
 }

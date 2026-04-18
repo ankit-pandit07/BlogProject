@@ -1,19 +1,13 @@
 import { Appbar } from "../components/Appbar";
 import { BlogCard } from "../components/BlogCard";
-import { PostComposer } from "../components/PostComposer";
 import { useBlogs } from "../hooks";
-import { Link } from "react-router-dom";
-import { Home, User, Bell, Mail, Search } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, User } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export const Blogs = () => {
   const { loading, blogs } = useBlogs();
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Force re-render feed on new post (in real app, append to state)
-  const handlePostCreated = () => {
-      window.location.reload();
-  };
+  const location = useLocation();
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
@@ -27,51 +21,60 @@ export const Blogs = () => {
       }
   }, []);
 
+  // Use the latest 3 blogs for the right sidebar
+  const latestBlogs = blogs.slice(0, 3);
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50 font-sans">
       <Appbar />
       
-      <div className="flex justify-center max-w-7xl mx-auto w-full">
+      <div className="flex justify-center max-w-7xl mx-auto w-full pt-6">
         {/* LEFT SIDEBAR (Desktop) */}
-        <div className="hidden sm:block w-64 px-4 py-6 border-r border-gray-100 min-h-screen sticky top-16">
+        <div className="hidden sm:block w-64 px-4 min-h-screen sticky top-24">
           <nav className="space-y-2">
-            <SidebarItem icon={<Home />} label="Home" active />
-            <SidebarItem icon={<Search />} label="Explore" />
-            <SidebarItem icon={<Bell />} label="Notifications" />
-            <SidebarItem icon={<Mail />} label="Messages" />
-            <SidebarItem icon={<User />} label="Profile" />
+            <Link to="/blogs">
+                <SidebarItem icon={<Home />} label="Home" active={location.pathname === "/blogs"} />
+            </Link>
+            {currentUserId && (
+                <Link to={`/profile/${currentUserId}`}>
+                    <SidebarItem icon={<User />} label="Profile" active={location.pathname.startsWith("/profile")} />
+                </Link>
+            )}
           </nav>
         </div>
 
         {/* CENTER FEED */}
-        <div className="w-full max-w-2xl border-r border-gray-100 min-h-screen pb-20">
-          <div className="sticky top-16 bg-white/80 backdrop-blur-md z-10 border-b border-gray-100 p-4">
-            <h2 className="text-xl font-bold">Home</h2>
+        <div className="w-full max-w-2xl min-h-screen pb-20 px-4">
+          <div className="mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Your Feed</h2>
+            <p className="text-gray-500 mt-1">Discover the latest stories and insights.</p>
           </div>
-          
-          <PostComposer onPostCreated={handlePostCreated} />
 
-          <div className="divide-y divide-gray-100">
+          <div className="space-y-6">
             {loading ? (
-              <div className="p-4 space-y-4">
+              <div className="space-y-6">
                 {[1, 2, 3].map(i => <BlogSkeleton key={i} />)}
               </div>
             ) : blogs.length === 0 ? (
-              <div className="text-center pt-20 text-gray-500 font-semibold text-lg">
-                No posts yet. Be the first to share what's happening!
+              <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No posts yet</h3>
+                <p className="text-gray-500">Be the first to share your thoughts!</p>
               </div>
             ) : (
               blogs.map(blog => 
-                <Link to={`/blog/${blog.id}`} key={blog.id} className="block">
-                  <BlogCard
-                    id={blog.id}
-                    authorName={blog.author.name || "Anonymous"}
-                    content={blog.content}
-                    publishedDate={"Just now"}
-                    likesCount={blog._count?.likes || 0}
-                    commentsCount={blog._count?.comments || 0}
-                    initialLiked={blog.likes?.some(l => l.userId === currentUserId) || false}
-                  />
+                <Link to={`/blog/${blog.id}`} key={blog.id} className="block transition-transform hover:-translate-y-1 duration-200">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                      <BlogCard
+                        id={blog.id}
+                        title={blog.title || "Untitled"}
+                        authorName={blog.author.name || "Anonymous"}
+                        content={blog.content}
+                        publishedDate={"Just now"}
+                        likesCount={blog._count?.likes || 0}
+                        commentsCount={blog._count?.comments || 0}
+                        initialLiked={blog.likes?.some(l => l.userId === currentUserId) || false}
+                      />
+                  </div>
                 </Link>
               )
             )}
@@ -79,12 +82,31 @@ export const Blogs = () => {
         </div>
 
         {/* RIGHT PANEL (Desktop) */}
-        <div className="hidden lg:block w-80 px-6 py-6 sticky top-16 h-screen">
-          <div className="bg-gray-50 rounded-2xl p-4">
-            <h3 className="font-bold text-xl mb-4">What's happening</h3>
-            <TrendingItem category="Technology" topic="React 19" posts="42.1K" />
-            <TrendingItem category="Frameworks" topic="Next.js vs Vite" posts="12.5K" />
-            <TrendingItem category="Design" topic="TailwindCSS" posts="8,204" />
+        <div className="hidden lg:block w-80 px-6 sticky top-24 h-max">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-lg text-gray-900 mb-4 tracking-tight">Latest Posts</h3>
+            {loading ? (
+                <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-5/6"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-4/6"></div>
+                </div>
+            ) : latestBlogs.length === 0 ? (
+                <p className="text-gray-500 text-sm">Nothing to see here.</p>
+            ) : (
+                <div className="space-y-5">
+                    {latestBlogs.map(blog => (
+                        <Link to={`/blog/${blog.id}`} key={blog.id} className="block group">
+                            <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                {blog.title || "Untitled Post"}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                                By {blog.author.name || "Anonymous"}
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            )}
           </div>
         </div>
       </div>
@@ -93,29 +115,22 @@ export const Blogs = () => {
 };
 
 const SidebarItem = ({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) => (
-  <button className={`flex items-center gap-4 p-3 rounded-full hover:bg-gray-100 transition-colors w-full ${active ? "font-bold" : "font-medium"}`}>
-    <div className={active ? "text-black" : "text-gray-800"}>{icon}</div>
-    <span className="text-xl hidden xl:block">{label}</span>
+  <button className={`flex items-center gap-4 p-3 rounded-xl transition-all w-full ${active ? "bg-gray-900 text-white shadow-md" : "hover:bg-white hover:shadow-sm text-gray-600"}`}>
+    <div className={active ? "text-white" : "text-gray-500"}>{icon}</div>
+    <span className={`text-lg hidden xl:block ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
   </button>
 );
 
-const TrendingItem = ({ category, topic, posts }: { category: string, topic: string, posts: string }) => (
-  <div className="mb-4 cursor-pointer hover:bg-gray-100 p-2 rounded-xl transition-colors">
-    <p className="text-xs text-gray-500 font-medium">{category}</p>
-    <p className="font-bold text-gray-900">{topic}</p>
-    <p className="text-xs text-gray-500">{posts} posts</p>
-  </div>
-);
-
 export const BlogSkeleton = () => {
-    return <div role="status" className="animate-pulse flex flex-col gap-2 p-4 border-b border-slate-200 pb-4 w-full cursor-pointer">
-        <div className="flex items-center gap-2">
-            <div className="h-6 w-6 bg-gray-200 rounded-full mb-2.5"></div>
-            <div className="h-2 bg-gray-200 rounded-full mb-2.5 w-24"></div>
+    return <div role="status" className="animate-pulse flex flex-col gap-3 p-6 bg-white rounded-2xl border border-gray-100 w-full">
+        <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+            <div className="h-3 bg-gray-200 rounded-full w-24"></div>
         </div>
-        <div className="h-4 bg-gray-200 rounded-full mb-2.5 w-full"></div>
-        <div className="h-2 bg-gray-200 rounded-full mb-2.5 w-1/2"></div>
-        <div className="h-2 bg-gray-200 rounded-full mb-2.5 w-20 mt-4"></div>
+        <div className="h-6 bg-gray-200 rounded-md w-3/4 mt-2"></div>
+        <div className="h-4 bg-gray-200 rounded-md w-full"></div>
+        <div className="h-4 bg-gray-200 rounded-md w-5/6"></div>
+        <div className="h-8 bg-gray-200 rounded-full w-24 mt-4"></div>
         <span className="sr-only">Loading...</span>
     </div>
 }

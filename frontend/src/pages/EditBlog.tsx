@@ -1,7 +1,8 @@
 import axios from "axios";
 import { BACKEND_URL } from "../config";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChangeEvent, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Toast } from "../components/Toast";
 import { Appbar } from "../components/Appbar";
 import { useBlog } from "../hooks";
 import { RichTextEditor } from "../components/RichTextEditor";
@@ -13,6 +14,8 @@ export const EditBlog = () => {
 
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<"success" | "error">("error");
 
     useEffect(() => {
         if (!localStorage.getItem("token")) {
@@ -61,10 +64,11 @@ export const EditBlog = () => {
                             navigate(`/blog/${id}`);
                         } catch (e: any) {
                             if (e.response?.status === 403) {
-                                alert(e.response.data.message || "Unauthorized");
+                                setToastMessage(e.response.data.message || "Unauthorized");
                             } else {
-                                alert("Failed to update post.");
+                                setToastMessage("Failed to update post.");
                             }
+                            setToastType("error");
                         }
                     }} 
                     type="submit" 
@@ -74,6 +78,7 @@ export const EditBlog = () => {
                 </button>
             </div>
         </div>
+        <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
     </div>
 }
 
